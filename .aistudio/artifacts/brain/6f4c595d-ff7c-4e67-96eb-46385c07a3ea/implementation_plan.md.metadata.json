@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to configure automated GitHub Releases workflow that triggers on version tags (v1.0.0), builds the ZoneQuiet APK, and attaches it as a downloadable release asset on GitHub.",
-  "updatedAt":  "2026-10-28T10:28:01.085428450Z",
+  "summary":  "Plan to resolve the GitHub Actions workflow failure caused by missing debug.keystore in CI runners by automatically decoding debug.keystore.base64 and providing keytool fallback in both build and release workflows.",
+  "updatedAt":  "2026-10-28T15:26:22.192947211Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
