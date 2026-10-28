@@ -1,81 +1,81 @@
-# Fix KSP Compiler Crash & Ensure Dual APK Uploads
+# Guarantee APK Attachment on GitHub Releases
 
-A focused plan to eliminate the KSP compiler error (`ksp.com.intellij.openapi.application.Application.getService(...) is null`) by removing unused KSP dependencies, adding headless JVM flags, and ensuring the compiled APK is uploaded to both GitHub Actions Artifacts and GitHub Releases.
+A targeted update to ensure that every push to the `main` branch automatically creates and updates a GitHub Release with the compiled APK file directly attached and downloadable under the Assets section.
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following decisions were confirmed during Phase 1:
-> - **Compiler Optimization**: Remove unused KSP dependencies (`androidx.room.compiler`, `moshi.kotlin.codegen`) and the KSP plugin from `app/build.gradle.kts`. Our app uses DataStore and Android's native JSON utilities, so KSP is completely unnecessary and was causing the IntelliJ AWT EventQueue crash in headless CI runners.
-> - **Artifact Availability**: Configure workflows so the APK is uploaded to **both** GitHub Actions Artifacts (for every run) and GitHub Releases (as formal release assets).
+> - **Identified Cause of Empty Release**: 
+>   1. When running on the `main` branch or manual trigger, `github.ref_name` was evaluating to `"main"` (a branch name, not a valid semantic release tag).
+>   2. The file upload was using a wildcard path (`release-assets/ZoneQuiet-*.apk`) that silently succeeded without failing if files weren't matched.
+> - **Confirmed Solutions**:
+>   1. **Trigger on Every Push to `main`**: Enable `on: push: branches: [ "main" ]` so whenever changes are pushed from AI Studio, the Release workflow runs automatically.
+>   2. **Explicit Tagging**: Force a valid release tag (e.g. `v1.0.0`) when triggered from `main`.
+>   3. **Direct File Reference & Validation**: Point `files` directly to the compiled APK and set `fail_on_unmatched_files: true` so the release cannot be created without the APK attached.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **What It Fixes**: 
-  1. Completely eliminates the `java.lang.NullPointerException` from `ksp.com.intellij.openapi.application.ApplicationManager`.
-  2. Reduces CI build time from over 3 minutes down to under 45 seconds by avoiding heavy Kotlin Symbol Processing passes.
-  3. Guarantees that the output APK is visible under the **Artifacts** card in GitHub Actions and published under the **Releases** tab on GitHub.
-- **Key Value**: Clean, zero-annotation-error build runs with reliable APK artifact generation across all GitHub workflows.
+- **What It Delivers**: 
+  1. Guaranteed attachment of `ZoneQuiet.apk` directly to the GitHub Release on every push.
+  2. Immediate download availability under **GitHub Releases -> Assets**.
+  3. Continuous artifact upload under **GitHub Actions -> Summary -> Artifacts**.
+- **Key Value**: One-click download directly from the GitHub repository homepage and Releases page without empty assets.
 
 ---
 
-### 2. User Experience & Workflow After Fix
+### 2. User Experience & Releases Walkthrough
 
-1. **GitHub Actions Run**:
-   - The workflow runs cleanly without any AWT/IntelliJ NullPointerExceptions.
-   - Build completes in seconds.
-2. **Finding the APK**:
-   - **Under GitHub Actions Summary**: Under **Artifacts**, the file `ZoneQuiet-debug-apk` appears immediately for download.
-   - **Under GitHub Releases**: Tagged pushes create a release with `ZoneQuiet-v1.0.0.apk` attached directly.
+1. **Pushing Code**:
+   - Push code to GitHub via AI Studio's **Settings / GitHub** menu.
+2. **Automated Release**:
+   - Workflow runs on `main`.
+   - Packages `app-debug.apk` into `ZoneQuiet-v1.0.0.apk`.
+   - Publishes or updates release **ZoneQuiet v1.0.0**.
+3. **Downloading the APK**:
+   - Open your GitHub repository.
+   - Click on **Releases** on the right side.
+   - Under **Assets**, click **`ZoneQuiet-v1.0.0.apk`** to download.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Removal of Unused KSP Compiler**
-  - *Chosen Approach*: Comment out / remove `alias(libs.plugins.google.devtools.ksp)` and `"ksp"(...)` compiler dependencies.
-  - *Why*: ZoneQuiet does not use Room or Moshi code generation; it uses Jetpack DataStore and standard Kotlin/Compose. Running KSP without annotations wastes CPU and causes IntelliJ runtime crashes on headless Linux CI containers.
+- **Decision 1: Trigger on Branch `main` with Dedicated Tag**
+  - *Chosen Approach*: `on: push: branches: [ main ]` with tag `v1.0.0` or dynamic tag generation.
+  - *Why*: AI Studio pushes directly to the `main` branch. This eliminates the need for manual tag pushes or CLI commands.
 
-- **Decision 2: Headless JVM Configuration**
-  - *Chosen Approach*: Add `-Djava.awt.headless=true` to `org.gradle.jvmargs` in `gradle.properties`.
-  - *Why*: Ensures that if any background Gradle tasks query system display or font metrics in Linux runners, they run in purely headless mode.
+- **Decision 2: Direct File Path & Unmatched File Guard**
+  - *Chosen Approach*: Explicitly copy `app-debug.apk` to `release-assets/ZoneQuiet-v1.0.0.apk` and specify `fail_on_unmatched_files: true`.
+  - *Why*: Prevents empty releases by enforcing that the APK must exist and be uploaded.
 
 ---
 
-### 4. Technical Architecture & Build Fix Diagram
+### 4. Technical Architecture & Workflow Specification
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Gradle Build Configuration                      │
+│                     Updated Release Workflow Pipeline                  │
 │                                                                        │
-│   `app/build.gradle.kts`                                               │
-│   ├── Remove `alias(libs.plugins.google.devtools.ksp)`                 │
-│   ├── Remove `"ksp"(libs.androidx.room.compiler)`                     │
-│   └── Remove `"ksp"(libs.moshi.kotlin.codegen)`                        │
-│                                                                        │
-│   `gradle.properties`                                                  │
-│   └── Add `-Djava.awt.headless=true` to `org.gradle.jvmargs`           │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        GitHub Actions Workflows                        │
-│                                                                        │
-│   1. `.github/workflows/build-apk.yml`                                │
-│      └── Uploads `ZoneQuiet-debug-apk` to Actions Artifacts (every push│
-│                                                                        │
-│   2. `.github/workflows/release-apk.yml`                              │
-│      ├── Uploads to Actions Artifacts                                  │
-│      └── Attaches `ZoneQuiet-v1.0.0.apk` to GitHub Release (on tags)   │
+│   Trigger: `on: push: branches: [ "main" ]` + `tags: [ "v*" ]`         │
+│                        │                                               │
+│                        ▼                                               │
+│   1. Restore Debug Keystore                                            │
+│   2. Build APK (`gradle assembleDebug`)                                │
+│   3. Copy binary: `app-debug.apk` ──> `ZoneQuiet-v1.0.0.apk`           │
+│   4. Upload to GitHub Actions Artifacts (`ZoneQuiet-apk`)              │
+│   5. `softprops/action-gh-release@v2`:                                 │
+│      ├── tag_name: `v1.0.0`                                            │
+│      ├── name: "ZoneQuiet v1.0.0"                                      │
+│      ├── files: `release-assets/ZoneQuiet-v1.0.0.apk`                  │
+│      ├── fail_on_unmatched_files: true                                 │
+│      └── generate_release_notes: true                                  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Execution Steps
+#### Execution Steps Upon Approval
 
-1. Update `app/build.gradle.kts` to remove unused KSP plugin and compiler configurations.
-2. Update `gradle.properties` to add `-Djava.awt.headless=true`.
-3. Update `.github/workflows/release-apk.yml` to also upload the artifact to GitHub Actions Artifacts before creating the Release.
-4. Verify local compilation with `compile_applet`.
-5. Commit changes to git and update the `v1.0.0` tag.
+1. Update `.github/workflows/release-apk.yml` with the branch trigger, explicit tag handling, and unmatched file validation.
+2. Commit changes to the `main` branch.
+3. Provide instructions for pushing and downloading from Releases.

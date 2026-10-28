@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to resolve the KSP AWT-EventQueue NullPointerException by removing unused KSP compiler dependencies, enabling headless JVM arguments in gradle.properties, and ensuring the APK artifact is uploaded to both GitHub Actions Artifacts and GitHub Releases.",
-  "updatedAt":  "2026-10-28T15:42:30.603804592Z",
+  "summary":  "Plan to fix empty GitHub Release by triggering the release workflow on every push to the main branch, enforcing a valid release tag (v1.0.0), explicitly uploading the APK binary without fragile path matching, and enabling fail_on_unmatched_files to guarantee the APK is attached.",
+  "updatedAt":  "2026-10-28T16:05:13.752012406Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -2,6 +2,8 @@ name: Publish GitHub Release with APK
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -49,22 +51,23 @@ jobs:
       - name: Prepare Release APK Asset
         run: |
           mkdir -p release-assets
-          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
-          cp app/build/outputs/apk/debug/app-debug.apk "release-assets/ZoneQuiet-${TAG_NAME}.apk"
-          echo "Release asset prepared: release-assets/ZoneQuiet-${TAG_NAME}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk release-assets/ZoneQuiet-v1.0.0.apk
+          ls -lh release-assets/
 
       - name: Upload APK to Actions Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ZoneQuiet-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: release-assets/ZoneQuiet-v1.0.0.apk
 
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         with:
-          name: "ZoneQuiet ${{ github.ref_name }}"
-          tag_name: ${{ github.ref_name }}
-          files: release-assets/ZoneQuiet-*.apk
+          name: "ZoneQuiet v1.0.0"
+          tag_name: "v1.0.0"
+          target_commitish: ${{ github.sha }}
+          files: release-assets/ZoneQuiet-v1.0.0.apk
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -73,13 +76,13 @@ jobs:
             
             **ZoneQuiet** automatically toggles Do Not Disturb (DND) when you enter a custom geofence perimeter and restores your normal alert mode when you leave.
             
-            #### Highlights:
+            #### Features:
             - **Interactive OpenStreetMap** with custom radius visualizer (50m - 2000m)
             - **Smart DND Memory**: Never turns off DND on exit if it was already on prior to entry
             - **Google Play Services Geofencing**: Hardware-accelerated background monitoring with low battery footprint
             - **OLED Dark Theme**: Emerald and Indigo neon accents
             
             #### Download:
-            Download the attached `ZoneQuiet-${{ github.ref_name }}.apk` file below and install it directly on your Android device!
+            Click on **ZoneQuiet-v1.0.0.apk** under Assets below to download and install on your device!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
