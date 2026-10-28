@@ -53,6 +53,12 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk "release-assets/ZoneQuiet-${TAG_NAME}.apk"
           echo "Release asset prepared: release-assets/ZoneQuiet-${TAG_NAME}.apk"
 
+      - name: Upload APK to Actions Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZoneQuiet-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         with:

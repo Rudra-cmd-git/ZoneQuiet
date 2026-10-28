@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to resolve the GitHub Actions workflow failure caused by missing debug.keystore in CI runners by automatically decoding debug.keystore.base64 and providing keytool fallback in both build and release workflows.",
-  "updatedAt":  "2026-10-28T15:26:22.192947211Z",
+  "summary":  "Plan to resolve the KSP AWT-EventQueue NullPointerException by removing unused KSP compiler dependencies, enabling headless JVM arguments in gradle.properties, and ensuring the APK artifact is uploaded to both GitHub Actions Artifacts and GitHub Releases.",
+  "updatedAt":  "2026-10-28T15:42:30.603804592Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
