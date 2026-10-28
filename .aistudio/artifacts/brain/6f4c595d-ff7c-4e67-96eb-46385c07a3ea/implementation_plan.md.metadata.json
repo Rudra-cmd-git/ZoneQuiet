@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to fix map tile misalignment and blank gray tiles by correcting pixel-to-density scaling and using high-reliability CartoDB dark tiles with radar grid fallback, and fixing location search by integrating Android's native Geocoder with an explicit tap-to-search button.",
-  "updatedAt":  "2026-10-28T16:22:10.216147728Z",
+  "summary":  "Plan to package ZoneQuiet v1.0.1 with bumped versionCode 2, reassemble the APK package with map and search fixes, update the GitHub release workflow to target v1.0.1, and create the v1.0.1 git tag.",
+  "updatedAt":  "2026-10-28T16:36:49.419246463Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

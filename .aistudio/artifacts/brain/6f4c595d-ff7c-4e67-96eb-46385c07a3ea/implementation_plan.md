@@ -1,86 +1,74 @@
-# Fix Map Tile Alignment & Native Location Search
+# Release ZoneQuiet v1.0.1 Package & GitHub Deployment
 
-A comprehensive fix to resolve map rendering issues (tile overlap, gray tiles, and misalignment) and repair the location search functionality using Android's native Geocoder and dual-mode search.
+A comprehensive plan to increment the application version to `v1.0.1` (versionCode 2), build the updated APK with density-aware map alignment and native geocoding search, and configure the GitHub release workflow to publish the `v1.0.1` release.
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following issues and solutions were identified during clarification:
-> 1. **Map Display (Blank Gray / Misaligned Tiles)**:
->    - *Cause*: Screen pixel density mismatch (drawing 256dp views using raw 256px world coordinates caused severe tile scaling and positioning errors on high-DPI devices), compounded by OSM tile server 403 blocks.
->    - *Solution*: Correct pixel-to-density conversion using `LocalDensity`, switch to reliable, high-speed CartoDB Dark Matter tiles natively styled for OLED dark mode, and include a vector radar background grid so the map remains responsive and beautiful under all network conditions.
-> 2. **Location Search ("No locations found" / Not triggering)**:
->    - *Cause*: Nominatim API network blocks, lack of an explicit tap-to-search button, and unhandled geocoding exceptions.
->    - *Solution*: Integrate Android's native `android.location.Geocoder` (powered by Google Play Services on device) with fallback to Nominatim, add an explicit search action button inside the text field, and auto-trigger on keyboard action.
+> The following parameters were confirmed during clarification:
+> - **Version Number**: `v1.0.1` (versionCode `2`, versionName `"1.0.1"`).
+> - **Release Tag Target**: `v1.0.1` on GitHub Releases with `ZoneQuiet-v1.0.1.apk` attached directly.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **What It Fixes**: 
-  1. Fixes the interactive map canvas so tiles align seamlessly, scale proportionally, and pan/zoom fluidly at any DPI.
-  2. Ensures location search returns accurate landmarks, cities, and addresses with immediate visual tap-to-pin navigation.
-- **Key Value**: Provides a reliable, professional-grade mapping experience with zero blank screens or failed searches.
+- **What It Delivers**: 
+  1. Updated Android application package with official version `1.0.1` reflecting all map rendering and search fixes.
+  2. Local build verification and binary assembly producing the new APK.
+  3. GitHub CI/CD workflow configured for `ZoneQuiet v1.0.1` with the git tag `v1.0.1` ready to push.
+- **Key Value**: Clean version increment ensuring Android devices recognize the update over the previous v1.0 build, and GitHub users can easily download the latest `ZoneQuiet-v1.0.1.apk`.
 
 ---
 
-### 2. User Experience & Visual Design
+### 2. User Experience & Release Walkthrough
 
-1. **Interactive Map Display**:
-   - Modern CartoDB Dark Matter map tiles designed specifically for dark UIs.
-   - Vector radar grid background ensures instant feedback while tiles stream in.
-   - Precise radius circle overlay in glowing emerald and electric indigo accurately scaled to zoom level.
-   - Smooth pan and pinch gestures, with instant pin repositioning on map tap.
-
-2. **Location Search Bar**:
-   - Clear input with a prominent **Search Button** icon right inside the trailing bar.
-   - Immediate dropdown suggestions displaying place names and formatted coordinates.
-   - Single tap on any result instantly centers the map pin and updates the geofence location.
+1. **In-App & Package Identity**:
+   - Package version code bumped to `2`, version name to `"1.0.1"`.
+   - Android OS allows users with v1.0 installed to upgrade seamlessly without uninstalling.
+2. **GitHub Releases Page**:
+   - New release published: **ZoneQuiet v1.0.1**.
+   - Under **Assets**, the direct download link is **`ZoneQuiet-v1.0.1.apk`**.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Density-Aware Tile Geometry**
-  - *Chosen Approach*: Convert Mercator world coordinates using `LocalDensity` so tile size in pixels matches tile width in DP on all screen densities (`mdpi` through `xxxhdpi`).
-  - *Why*: Eliminates pixel stretching, seams, and visual overlap.
-
-- **Decision 2: Android Native `Geocoder` + Nominatim Fallback**
-  - *Chosen Approach*: First invoke `android.location.Geocoder` (on-device system service). If unavailable or returning empty, fall back to Nominatim with a verified mobile user-agent.
-  - *Why*: Android's built-in Geocoder runs locally through Google Play Services, eliminating HTTP rate limits and 403 Forbidden errors.
+- **Decision: Version Code Increment (1 -> 2, "1.0" -> "1.0.1")**
+  - *Chosen Approach*: Update `defaultConfig` in `app/build.gradle.kts`.
+  - *Why*: Android Package Manager requires `versionCode` to strictly increase for package updates to succeed on physical devices.
 
 ---
 
-### 4. Technical Architecture & Component Mapping
+### 4. Technical Architecture & Deployment Sequence
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Search & Map Architecture                       │
+│                        Version Bump Pipeline                           │
 │                                                                        │
-│   LocationSearchBar                                                    │
-│   ├── User types query: "Central Park, NY"                             │
-│   ├── Taps search icon or press Enter                                  │
-│   └── Calls `MainViewModel.performSearch()`                            │
-│              │                                                         │
-│              ▼                                                         │
-│   LocationSearchService                                                │
-│   ├── 1. `android.location.Geocoder.getFromLocationName()`             │
-│   └── 2. (Fallback) HTTPS Nominatim with custom User-Agent             │
-│              │                                                         │
-│              ▼                                                         │
-│   `MainViewModel.updateLocation(lat, lon)`                             │
-│              │                                                         │
-│              ▼                                                         │
-│   OsmMapView                                                           │
-│   ├── Density-corrected Mercator tile positioning (`tileSizeDp`)       │
-│   ├── CartoDB Dark Matter / OSM tiles with cache & crossfade           │
-│   └── Canvas radius circle scaled via `OsmTileHelper.metersToPixels`   │
+│   `app/build.gradle.kts`                                               │
+│   ├── versionCode: 1 ──> 2                                             │
+│   └── versionName: "1.0" ──> "1.0.1"                                   │
+│                        │                                               │
+│                        ▼                                               │
+│   Local Build: `gradle assembleDebug`                                  │
+│   └── Outputs: `app/build/outputs/apk/debug/app-debug.apk` (v1.0.1)    │
+│                        │                                               │
+│                        ▼                                               │
+│   GitHub Actions: `.github/workflows/release-apk.yml`                  │
+│   ├── tag_name: `v1.0.1`                                               │
+│   ├── name: "ZoneQuiet v1.0.1"                                         │
+│   └── Asset: `ZoneQuiet-v1.0.1.apk`                                    │
+│                        │                                               │
+│                        ▼                                               │
+│   Git: Commit changes & create tag `v1.0.1`                            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Execution Steps Upon Approval
 
-1. Update `OsmTileHelper.kt` and `OsmMapView.kt` with density-aware sizing and CartoDB dark tiles.
-2. Update `LocationSearchService.kt` to use Android's native `Geocoder` with fallback.
-3. Update `LocationSearchBar.kt` to add a dedicated search trigger icon button.
-4. Verify with `compile_applet` and commit changes.
+1. Update `versionCode = 2` and `versionName = "1.0.1"` in `app/build.gradle.kts`.
+2. Update `.github/workflows/release-apk.yml` to target `ZoneQuiet v1.0.1` and `ZoneQuiet-v1.0.1.apk`.
+3. Assemble the updated APK using `gradle assembleDebug`.
+4. Commit the changes and tag `v1.0.1`.
+5. Guide the user on pushing to GitHub.

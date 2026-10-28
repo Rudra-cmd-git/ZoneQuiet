@@ -51,38 +51,42 @@ jobs:
       - name: Prepare Release APK Asset
         run: |
           mkdir -p release-assets
-          cp app/build/outputs/apk/debug/app-debug.apk release-assets/ZoneQuiet-v1.0.0.apk
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.1}"
+          if [ "$TAG_NAME" = "main" ]; then
+            TAG_NAME="v1.0.1"
+          fi
+          cp app/build/outputs/apk/debug/app-debug.apk "release-assets/ZoneQuiet-${TAG_NAME}.apk"
+          echo "RELEASE_TAG=${TAG_NAME}" >> $GITHUB_ENV
           ls -lh release-assets/
 
       - name: Upload APK to Actions Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ZoneQuiet-apk
-          path: release-assets/ZoneQuiet-v1.0.0.apk
+          name: ZoneQuiet-v1.0.1-apk
+          path: release-assets/ZoneQuiet-*.apk
 
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         with:
-          name: "ZoneQuiet v1.0.0"
-          tag_name: "v1.0.0"
+          name: "ZoneQuiet ${{ env.RELEASE_TAG }}"
+          tag_name: "${{ env.RELEASE_TAG }}"
           target_commitish: ${{ github.sha }}
-          files: release-assets/ZoneQuiet-v1.0.0.apk
+          files: release-assets/ZoneQuiet-*.apk
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
-            ### ZoneQuiet Android Application
+            ### ZoneQuiet Android Application v1.0.1
             
             **ZoneQuiet** automatically toggles Do Not Disturb (DND) when you enter a custom geofence perimeter and restores your normal alert mode when you leave.
             
-            #### Features:
-            - **Interactive OpenStreetMap** with custom radius visualizer (50m - 2000m)
-            - **Smart DND Memory**: Never turns off DND on exit if it was already on prior to entry
-            - **Google Play Services Geofencing**: Hardware-accelerated background monitoring with low battery footprint
-            - **OLED Dark Theme**: Emerald and Indigo neon accents
+            #### What's New in v1.0.1:
+            - **Density-Aware Map Alignment**: Perfect 1:1 pixel rendering on high-DPI displays without tile shearing.
+            - **CartoDB Dark Matter Tiles**: Fast, modern dark-mode vector tile CDN with fallback radar grid.
+            - **Android Native Geocoder**: Reliable on-device address search with instant tap-to-search button.
             
             #### Download:
-            Click on **ZoneQuiet-v1.0.0.apk** under Assets below to download and install on your device!
+            Click on **ZoneQuiet-${{ env.RELEASE_TAG }}.apk** under Assets below to download and install!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
