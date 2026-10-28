@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to package ZoneQuiet v1.0.1 with bumped versionCode 2, reassemble the APK package with map and search fixes, update the GitHub release workflow to target v1.0.1, and create the v1.0.1 git tag.",
-  "updatedAt":  "2026-10-28T16:36:49.419246463Z",
+  "summary":  "Plan to eliminate the Google Maps API key prompt by completely removing the Google Maps Secrets Gradle plugin and its manifest injection from app/build.gradle.kts, ensuring 100% free, zero-key OpenStreetMap and on-device location services.",
+  "updatedAt":  "2026-10-28T17:37:21.638958684Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

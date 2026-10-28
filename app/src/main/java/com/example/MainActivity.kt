@@ -343,13 +343,21 @@ class MainActivity : ComponentActivity() {
                                             color = TextPrimary
                                         )
                                     )
-                                    Text(
-                                        text = "Tap or drag map to set pin",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = TextMuted,
-                                            fontSize = 11.sp
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = EmeraldNeon.copy(alpha = 0.12f),
+                                        border = androidx.compose.foundation.BorderStroke(0.5.dp, EmeraldNeon.copy(alpha = 0.35f))
+                                    ) {
+                                        Text(
+                                            text = "Free OpenStreetMap (Zero Keys)",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = EmeraldNeon,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                         )
-                                    )
+                                    }
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 OsmMapView(
@@ -364,6 +372,15 @@ class MainActivity : ComponentActivity() {
                                         viewModel.fetchCurrentGpsLocation()
                                     },
                                     modifier = Modifier.height(300.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Tap or drag anywhere on map to reposition your quiet zone pin",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = TextMuted,
+                                        fontSize = 11.sp
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 4.dp)
                                 )
                             }
                         }
