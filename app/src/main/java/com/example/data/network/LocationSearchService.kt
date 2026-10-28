@@ -1,5 +1,8 @@
 package com.example.data.network
 
+import android.content.Context
+import android.location.Address
+import android.location.Geocoder
 import com.example.data.model.SearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -7,28 +10,57 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import java.net.URLEncoder
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-class LocationSearchService {
+class LocationSearchService(private val context: Context) {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(8, TimeUnit.SECONDS)
         .build()
 
     suspend fun searchLocation(query: String): List<SearchResult> = withContext(Dispatchers.IO) {
-        if (query.isBlank()) return@withContext emptyList()
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return@withContext emptyList()
 
+        // 1. First Attempt: Android Built-in System Geocoder (zero network block risk, powered by Google Play)
         try {
-            val encoded = URLEncoder.encode(query.trim(), "UTF-8")
+            if (Geocoder.isPresent()) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                @Suppress("DEPRECATION")
+                val addressList: List<Address>? = geocoder.getFromLocationName(trimmed, 5)
+                if (!addressList.isNullOrEmpty()) {
+                    val nativeResults = addressList.mapIndexed { index, address ->
+                        val label = buildAddressLabel(address)
+                        SearchResult(
+                            placeId = index.toLong() + 1000L,
+                            displayName = label,
+                            latitude = address.latitude,
+                            longitude = address.longitude
+                        )
+                    }
+                    if (nativeResults.isNotEmpty()) {
+                        return@withContext nativeResults
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Geocoder service may throw IOException on some emulators; proceed to HTTP fallback
+        }
+
+        // 2. Second Attempt: Nominatim OpenStreetMap Geocoding Fallback
+        try {
+            val encoded = URLEncoder.encode(trimmed, "UTF-8")
             val url = "https://nominatim.openstreetmap.org/search?q=$encoded&format=json&limit=5&addressdetails=1"
 
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "ZoneQuiet-Android/1.0 (Location Search)")
+                .header("User-Agent", "ZoneQuietApp/1.0 (Android; contact=zonequiet@example.com)")
+                .header("Accept", "application/json")
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext emptyList()
                 val body = response.body?.string() ?: return@withContext emptyList()
 
@@ -50,5 +82,30 @@ class LocationSearchService {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    private fun buildAddressLabel(address: Address): String {
+        val parts = mutableListOf<String>()
+        if (!address.featureName.isNullOrBlank() && address.featureName != address.subThoroughfare) {
+            parts.add(address.featureName)
+        }
+        if (!address.thoroughfare.isNullOrBlank()) {
+            val street = if (!address.subThoroughfare.isNullOrBlank()) {
+                "${address.subThoroughfare} ${address.thoroughfare}"
+            } else {
+                address.thoroughfare
+            }
+            if (!parts.contains(street)) parts.add(street)
+        }
+        if (!address.locality.isNullOrBlank() && !parts.contains(address.locality)) {
+            parts.add(address.locality)
+        }
+        if (!address.adminArea.isNullOrBlank() && !parts.contains(address.adminArea)) {
+            parts.add(address.adminArea)
+        }
+        if (!address.countryName.isNullOrBlank() && !parts.contains(address.countryName)) {
+            parts.add(address.countryName)
+        }
+        return if (parts.isNotEmpty()) parts.joinToString(", ") else (address.getAddressLine(0) ?: "Selected Location")
     }
 }

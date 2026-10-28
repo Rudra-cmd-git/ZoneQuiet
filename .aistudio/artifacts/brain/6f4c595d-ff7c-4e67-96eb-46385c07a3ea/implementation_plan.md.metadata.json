@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to fix empty GitHub Release by triggering the release workflow on every push to the main branch, enforcing a valid release tag (v1.0.0), explicitly uploading the APK binary without fragile path matching, and enabling fail_on_unmatched_files to guarantee the APK is attached.",
-  "updatedAt":  "2026-10-28T16:05:13.752012406Z",
+  "summary":  "Plan to fix map tile misalignment and blank gray tiles by correcting pixel-to-density scaling and using high-reliability CartoDB dark tiles with radar grid fallback, and fixing location search by integrating Android's native Geocoder with an explicit tap-to-search button.",
+  "updatedAt":  "2026-10-28T16:22:10.216147728Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

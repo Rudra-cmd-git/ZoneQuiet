@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -67,28 +68,58 @@ fun LocationSearchBar(
             onValueChange = onQueryChange,
             placeholder = { Text("Search address, landmark, or city...") },
             leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = IndigoNeon,
-                    modifier = Modifier.size(20.dp)
-                )
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onSearch()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search icon",
+                        tint = IndigoNeon,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             },
             trailingIcon = {
-                if (isSearching) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = IndigoNeon
-                    )
-                } else if (query.isNotBlank()) {
-                    IconButton(onClick = onClear) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear search",
-                            tint = TextMuted,
-                            modifier = Modifier.size(18.dp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 4.dp),
+                            strokeWidth = 2.dp,
+                            color = IndigoNeon
                         )
+                    } else if (query.isNotBlank()) {
+                        IconButton(
+                            onClick = onClear,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear search",
+                                tint = TextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                onSearch()
+                            },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("search_submit_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Submit search",
+                                tint = EmeraldNeon,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             },

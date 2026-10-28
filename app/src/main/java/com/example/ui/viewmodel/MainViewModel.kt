@@ -35,7 +35,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val dataStore = ZonePreferencesDataStore(application)
     private val geofenceManager = GeofenceManager(application)
     private val dndHelper = DndNotificationHelper(application)
-    private val searchService = LocationSearchService()
+    private val searchService = LocationSearchService(application)
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
 
     val zoneState: StateFlow<GeofenceZone> = dataStore.zoneFlow

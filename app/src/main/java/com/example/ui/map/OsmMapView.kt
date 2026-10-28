@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
@@ -42,17 +41,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -70,7 +65,6 @@ import com.example.ui.theme.EmeraldNeon
 import com.example.ui.theme.IndigoNeon
 import com.example.ui.theme.ObsidianBg
 import kotlin.math.floor
-import kotlin.math.pow
 import kotlin.math.roundToInt
 
 @Composable
@@ -84,17 +78,14 @@ fun OsmMapView(
     modifier: Modifier = Modifier
 ) {
     var zoomLevel by remember { mutableIntStateOf(15) }
-    // Camera center
     var centerLat by remember { mutableDoubleStateOf(targetLatitude) }
     var centerLon by remember { mutableDoubleStateOf(targetLongitude) }
 
-    // Sync camera if target location updates externally
     LaunchedEffect(targetLatitude, targetLongitude) {
         centerLat = targetLatitude
         centerLon = targetLongitude
     }
 
-    // Infinite breathing pulse for the radius circle
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.98f,
@@ -110,17 +101,9 @@ fun OsmMapView(
     val density = LocalDensity.current
     val context = LocalContext.current
 
-    // Subtle dark color matrix for OSM tiles to blend with the OLED dark theme
-    val darkFilterMatrix = remember {
-        ColorMatrix(
-            floatArrayOf(
-                0.60f, 0f, 0f, 0f, 20f,
-                0f, 0.65f, 0f, 0f, 25f,
-                0f, 0f, 0.75f, 0f, 40f,
-                0f, 0f, 0f, 1f, 0f
-            )
-        )
-    }
+    // Tile size in DP and pixels
+    val tileSizeDp = 256.dp
+    val tileSizePx = with(density) { tileSizeDp.toPx() }
 
     BoxWithConstraints(
         modifier = modifier
@@ -134,20 +117,17 @@ fun OsmMapView(
         val screenCenterX = widthPx / 2f
         val screenCenterY = heightPx / 2f
 
-        // Convert camera center to World Coordinates
-        val (camWorldX, camWorldY) = OsmTileHelper.latLonToWorld(centerLat, centerLon, zoomLevel)
+        val (camWorldX, camWorldY) = OsmTileHelper.latLonToWorld(centerLat, centerLon, zoomLevel, tileSizePx)
 
-        // Bounding world coordinates visible on screen
         val minWorldX = camWorldX - screenCenterX
         val maxWorldX = camWorldX + screenCenterX
         val minWorldY = camWorldY - screenCenterY
         val maxWorldY = camWorldY + screenCenterY
 
-        val tileSize = OsmTileHelper.TILE_SIZE
-        val minTileX = floor(minWorldX / tileSize).toInt()
-        val maxTileX = floor(maxWorldX / tileSize).toInt()
-        val minTileY = floor(minWorldY / tileSize).toInt()
-        val maxTileY = floor(maxWorldY / tileSize).toInt()
+        val minTileX = floor(minWorldX / tileSizePx).toInt()
+        val maxTileX = floor(maxWorldX / tileSizePx).toInt()
+        val minTileY = floor(minWorldY / tileSizePx).toInt()
+        val maxTileY = floor(maxWorldY / tileSizePx).toInt()
 
         val maxTiles = 1 shl zoomLevel
 
@@ -155,51 +135,74 @@ fun OsmMapView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(zoomLevel, centerLat, centerLon) {
+                .pointerInput(zoomLevel, centerLat, centerLon, tileSizePx) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
-                        // Dragging shifts the camera world coordinates
                         val newWorldX = camWorldX - dragAmount.x
                         val newWorldY = camWorldY - dragAmount.y
-                        val (newLat, newLon) = OsmTileHelper.worldToLatLon(newWorldX, newWorldY, zoomLevel)
+                        val (newLat, newLon) = OsmTileHelper.worldToLatLon(newWorldX, newWorldY, zoomLevel, tileSizePx)
                         centerLat = newLat
                         centerLon = newLon
                     }
                 }
-                .pointerInput(zoomLevel, centerLat, centerLon) {
+                .pointerInput(zoomLevel, centerLat, centerLon, tileSizePx) {
                     detectTapGestures { tapOffset ->
                         val tappedWorldX = minWorldX + tapOffset.x
                         val tappedWorldY = minWorldY + tapOffset.y
-                        val (tapLat, tapLon) = OsmTileHelper.worldToLatLon(tappedWorldX, tappedWorldY, zoomLevel)
+                        val (tapLat, tapLon) = OsmTileHelper.worldToLatLon(tappedWorldX, tappedWorldY, zoomLevel, tileSizePx)
                         onLocationSelected(tapLat, tapLon)
                     }
                 }
         ) {
+            // Fallback Radar Grid Canvas (shows subtle coordinate grid lines)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val gridSpacing = tileSizePx / 2f
+                var gx = (((-minWorldX) % gridSpacing + gridSpacing) % gridSpacing).toFloat()
+                while (gx < widthPx) {
+                    drawLine(
+                        color = Color(0xFF1E293B),
+                        start = Offset(gx, 0f),
+                        end = Offset(gx, heightPx),
+                        strokeWidth = 1f
+                    )
+                    gx += gridSpacing
+                }
+                var gy = (((-minWorldY) % gridSpacing + gridSpacing) % gridSpacing).toFloat()
+                while (gy < heightPx) {
+                    drawLine(
+                        color = Color(0xFF1E293B),
+                        start = Offset(0f, gy),
+                        end = Offset(widthPx, gy),
+                        strokeWidth = 1f
+                    )
+                    gy += gridSpacing
+                }
+            }
+
             // Render Map Tiles
             for (tx in minTileX..maxTileX) {
                 for (ty in minTileY..maxTileY) {
                     val normalizedTileX = ((tx % maxTiles) + maxTiles) % maxTiles
                     if (ty in 0 until maxTiles) {
-                        val tileLeftScreen = (tx * tileSize) - minWorldX
-                        val tileTopScreen = (ty * tileSize) - minWorldY
+                        val tileLeftPx = (tx * tileSizePx) - minWorldX
+                        val tileTopPx = (ty * tileSizePx) - minWorldY
 
-                        val tileUrl = OsmTileHelper.getTileUrl(normalizedTileX, ty, zoomLevel)
+                        val tileUrl = OsmTileHelper.getCartoDbDarkTileUrl(normalizedTileX, ty, zoomLevel)
 
                         AsyncImage(
                             model = ImageRequest.Builder(context)
                                 .data(tileUrl)
                                 .addHeader("User-Agent", "ZoneQuiet-Android/1.0 (Location DND)")
-                                .crossfade(true)
+                                .crossfade(200)
                                 .build(),
                             contentDescription = null,
                             contentScale = ContentScale.FillBounds,
-                            colorFilter = ColorFilter.colorMatrix(darkFilterMatrix),
                             modifier = Modifier
-                                .size(256.dp)
+                                .size(tileSizeDp)
                                 .offset {
                                     IntOffset(
-                                        tileLeftScreen.roundToInt(),
-                                        tileTopScreen.roundToInt()
+                                        tileLeftPx.roundToInt(),
+                                        tileTopPx.roundToInt()
                                     )
                                 }
                         )
@@ -208,11 +211,11 @@ fun OsmMapView(
             }
 
             // Canvas for Geofence Target, Radius Circle, and Pulse
-            val (targetWorldX, targetWorldY) = OsmTileHelper.latLonToWorld(targetLatitude, targetLongitude, zoomLevel)
+            val (targetWorldX, targetWorldY) = OsmTileHelper.latLonToWorld(targetLatitude, targetLongitude, zoomLevel, tileSizePx)
             val targetScreenX = (targetWorldX - minWorldX).toFloat()
             val targetScreenY = (targetWorldY - minWorldY).toFloat()
 
-            val baseRadiusPx = OsmTileHelper.metersToPixels(radiusMeters, targetLatitude, zoomLevel)
+            val baseRadiusPx = OsmTileHelper.metersToPixels(radiusMeters, targetLatitude, zoomLevel, tileSizePx)
             val currentRadiusPx = baseRadiusPx * pulseScale
 
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -220,7 +223,7 @@ fun OsmMapView(
 
                 // Fill area of geofence
                 drawCircle(
-                    color = primaryColor.copy(alpha = 0.18f),
+                    color = primaryColor.copy(alpha = 0.20f),
                     radius = currentRadiusPx,
                     center = centerOffset
                 )
@@ -233,7 +236,7 @@ fun OsmMapView(
                     style = Stroke(width = 3.dp.toPx())
                 )
 
-                // Subtle inner guide ring
+                // Inner guide ring
                 drawCircle(
                     color = primaryColor.copy(alpha = 0.35f),
                     radius = (currentRadiusPx * 0.5f),
@@ -247,26 +250,24 @@ fun OsmMapView(
                 modifier = Modifier
                     .offset {
                         IntOffset(
-                            (targetScreenX - 20.dp.toPx()).roundToInt(),
-                            (targetScreenY - 40.dp.toPx()).roundToInt()
+                            (targetScreenX - 18.dp.toPx()).roundToInt(),
+                            (targetScreenY - 36.dp.toPx()).roundToInt()
                         )
                     }
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        shape = CircleShape,
-                        color = primaryColor,
-                        shadowElevation = 8.dp,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Selected geofence center",
-                                tint = ObsidianBg,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                Surface(
+                    shape = CircleShape,
+                    color = primaryColor,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Selected geofence center",
+                            tint = ObsidianBg,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
             }
@@ -342,7 +343,6 @@ fun OsmMapView(
             ) {
                 SmallFloatingActionButton(
                     onClick = {
-                        // Recenter camera on the selected target pin
                         centerLat = targetLatitude
                         centerLon = targetLongitude
                     },
