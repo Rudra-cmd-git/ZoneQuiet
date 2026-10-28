@@ -1,89 +1,73 @@
-# Production Release APK & GitHub Export Workflow
+# Automated GitHub Release Publishing for ZoneQuiet
 
-A clear execution plan to assemble the production Release APK, package project artifacts, and guide the user through Google AI Studio's built-in GitHub push integration.
+An automated CI/CD release pipeline using GitHub Actions that triggers when version tags (such as `v1.0.0`) are pushed, builds the APK, generates release notes, and attaches the binary directly to the GitHub Releases page.
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
 > The following parameters were confirmed during clarification:
-> - **Build Target**: Release APK for production deployment.
-> - **GitHub Push Workflow**: Step-by-step guidance for leveraging the native AI Studio project export menu to link and push to your GitHub account directly.
+> - **Trigger Mechanism**: Automatically create a GitHub Release with the APK attached whenever a semantic version tag (`v*.*.*`) is pushed.
+> - **Initial Version Tag**: Tag the current state with `v1.0.0` so the release is ready to deploy immediately upon pushing to GitHub.
 
 ---
 
 ### 1. Overview & Core Concept
 
 - **What It Delivers**: 
-  1. Execution and verification of the Gradle release assembly task (`gradle assembleRelease` or generation via AI Studio export engine) producing the production Android application package.
-  2. Complete, structured walkthrough for connecting your GitHub account and pushing the entire ZoneQuiet repository (source code, assets, and Gradle configs) directly from the AI Studio browser interface.
-- **Key Value**: Provides a production-ready package with optimized bytecode, verified resource shrinking, and clean version control export without requiring manual terminal git credential setups.
+  1. A production GitHub Actions workflow (`.github/workflows/release-apk.yml`) that listens for tag pushes matching `v*` (or manual `workflow_dispatch`), builds the APK, creates a formal GitHub Release, and publishes the `.apk` as a downloadable asset.
+  2. Local creation and configuration of the `v1.0.0` git tag, ready for synchronization with your GitHub remote.
+- **Key Value**: Users visiting your GitHub repository can simply click on **Releases** and download the installable `.apk` file without navigating build artifacts or compiling source code manually.
 
 ---
 
-### 2. User Experience & Visual Design
+### 2. User Experience & Releases Walkthrough
 
-#### Release Build & GitHub Export Flow
+1. **GitHub Releases Page (`https://github.com/<owner>/<repo>/releases`)**:
+   - Visitors and users will see **ZoneQuiet v1.0.0** at the top of the Releases tab.
+   - Includes full release notes detailing the Geofence Do Not Disturb automation, OpenStreetMap integration, and safety state preservation.
+   - Under **Assets**, the file `ZoneQuiet-v1.0.0.apk` is listed for direct, one-click download.
 
-1. **Production Build Generation**:
-   - The Gradle release pipeline compiles all Kotlin source files, optimizes Compose layout nodes, bundles vector & raster icon densities, and outputs the installable release binary to `app/build/outputs/apk/release/`.
-
-2. **Native AI Studio GitHub Export Experience**:
-   - In the top-right header / project settings menu in AI Studio:
-     1. Click the **Project Settings** (gear icon) or **Share / Export** menu.
-     2. Select **Push to GitHub** or **Export to GitHub**.
-     3. Authorize your GitHub account (or choose your organization).
-     4. Select **Create New Repository** and enter `ZoneQuiet` (or your preferred repo name).
-     5. Click **Push** — AI Studio will automatically commit the entire directory tree and push to `main`.
-
-3. **In-Browser APK Download**:
-   - AI Studio provides a direct **Download APK** / **Generate APK** button under the project export options, allowing one-click download of the compiled package directly to your computer or phone.
+2. **Tag & Push Sequence**:
+   - When you push tags to GitHub (`git push origin --tags` or via AI Studio push), GitHub Actions automatically kicks off the release pipeline.
+   - On completion, the release changes from "draft" to "published" with the APK attached.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Native AI Studio GitHub Menu vs. CLI Git Push**
-  - *Chosen Approach*: Native AI Studio GitHub integration.
-  - *Why*: Cloud containers in AI Studio operate in an isolated environment without persistent personal OAuth tokens. Pushing through the browser UI securely authenticates via GitHub OAuth without exposing personal access tokens in bash logs or source code.
-
-- **Decision 2: Automated Gradle Release Task Execution**
-  - *Chosen Approach*: Run `gradle assembleRelease` (or fallback to release signing configuration verification) to ensure the release pipeline is completely verified and error-free prior to user download.
-  - *Why*: Catches any potential ProGuard/R8 obfuscation issues or missing release assets immediately.
+- **Decision: `softprops/action-gh-release` for GitHub Releases**
+  - *Chosen Approach*: Official and widely adopted standard `softprops/action-gh-release@v2`.
+  - *Why*: Supports automatic changelog generation, custom asset naming (`ZoneQuiet-v1.0.0.apk`), and robust handling of permissions via `GITHUB_TOKEN`.
+  - *Alternatives Considered*: Manual GitHub UI release draft (tedious and error-prone) or third-party upload services.
 
 ---
 
-### 4. Technical Architecture & Build Pipeline
+### 4. Technical Architecture & Release Pipeline
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        AI Studio Build System                          │
+│                        GitHub Release Pipeline                         │
 │                                                                        │
-│   Source Files (Kotlin / Jetpack Compose / Resources)                  │
-│                        │                                               │
-│                        ▼                                               │
-│   Gradle Build Pipeline (:app:assembleRelease)                         │
-│   ├── AAPT2 Resource Compilation & PNG Merging                         │
-│   ├── Kotlin Compilation (ksp & compose compiler)                      │
-│   ├── ProGuard / R8 Rules Optimization (`proguard-rules.pro`)          │
-│   └── APK Packaging (`app-release.apk`)                                │
-│                        │                                               │
-│                        ▼                                               │
-│   Output: `app/build/outputs/apk/release/app-release-unsigned.apk`     │
-│           (or signed production APK via AI Studio Release Keystore)    │
-└────────────────────────┬───────────────────────────────────────────────┘
-                         │
-                         ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                      GitHub Project Export                             │
-│                                                                        │
-│   AI Studio Cloud Backend  ──[OAuth 2.0]──> GitHub REST API            │
-│   - Creates Repository: `username/ZoneQuiet`                           │
-│   - Pushes branch `main` with full commit tree & documentation         │
+│   Developer creates tag: `v1.0.0` ──> `git push origin v1.0.0`         │
+│                                           │                            │
+│                                           ▼                            │
+│   GitHub Actions: `.github/workflows/release-apk.yml`                  │
+│   ├── Step 1: Checkout repository at tag ref                           │
+│   ├── Step 2: Set up Java JDK 17 (Temurin)                             │
+│   ├── Step 3: Run `gradle assembleDebug`                               │
+│   ├── Step 4: Rename APK to `ZoneQuiet-v1.0.0.apk`                     │
+│   └── Step 5: `softprops/action-gh-release@v2`                         │
+│               - Creates Release: "ZoneQuiet v1.0.0"                    │
+│               - Attaches `ZoneQuiet-v1.0.0.apk` to Assets              │
+│                                           │                            │
+│                                           ▼                            │
+│   Output: Published GitHub Release with Direct APK Download Link       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 #### Verification Steps
 
-1. Run `gradle assembleRelease` to execute the production build pipeline.
-2. Verify output file presence in `app/build/outputs/apk/release/`.
-3. Provide the user with direct, numbered instructions to push to GitHub from the AI Studio UI and download the APK.
+1. Create `.github/workflows/release-apk.yml` with proper permissions (`contents: write`).
+2. Rename the APK asset to a user-friendly binary name (`ZoneQuiet-v1.0.0.apk`).
+3. Create the local Git tag `v1.0.0`.
+4. Commit changes to the `main` branch.

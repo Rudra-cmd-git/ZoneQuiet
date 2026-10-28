@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan for generating the production Release APK and providing step-by-step guidance for exporting the project to GitHub using Google AI Studio's native integration.",
-  "updatedAt":  "2026-10-28T10:11:10.152274446Z",
+  "summary":  "Plan to configure automated GitHub Releases workflow that triggers on version tags (v1.0.0), builds the ZoneQuiet APK, and attaches it as a downloadable release asset on GitHub.",
+  "updatedAt":  "2026-10-28T10:28:01.085428450Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
