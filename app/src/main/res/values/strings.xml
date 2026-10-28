@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ZoneQuiet</string>
+    <string name="channel_name">Geofence DND Updates</string>
+    <string name="channel_description">Notifications for entry and exit transitions of your DND geofence zones.</string>
+</resources>

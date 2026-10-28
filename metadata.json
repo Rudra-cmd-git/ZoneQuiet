@@ -1,0 +1,6 @@
+{
+  "name": "ZoneQuiet",
+  "description": "Automate Do Not Disturb based on user-selected geofence locations and custom radius.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
